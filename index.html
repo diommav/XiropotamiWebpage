@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serene Haven - Your Modern Getaway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .hero-bg {
+            /* Placeholder will be set by JS if local fails */
+            background-image: url('https://placehold.co/1920x1080/334155/e2e8f0?text=Loading+Image...'); /* Initial temporary placeholder */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .section-heading::after {
+            content: ''; display: block; width: 60px; height: 3px;
+            background-color: #3b82f6; margin: 8px auto 0; border-radius: 2px;
+        }
+        .gallery-image { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .gallery-image:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .nav-link.active { color: #3b82f6; font-weight: 600; }
+
+        .modal { /* For contact form confirmation */
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888;
+            width: 90%; max-width: 400px; border-radius: 8px; text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-close-button {
+            color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
+        }
+        .modal-close-button:hover, .modal-close-button:focus { color: black; text-decoration: none; }
+
+        /* Calendar Styles */
+        .calendar-day.past {
+            background-color: #f3f4f6; /* bg-slate-100 */
+            color: #9ca3af; /* text-slate-400 */
+            text-decoration: line-through;
+            pointer-events: none;
+        }
+        .calendar-day.booked {
+            background-color: #fecaca; /* bg-red-200 */
+            color: #b91c1c; /* text-red-700 */
+            text-decoration: line-through;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        .calendar-day.today {
+            background-color: #93c5fd; /* bg-blue-300 */
+            color: #1e40af; /* text-blue-800 */
+            font-weight: bold;
+            border: 1px solid #2563eb; /* border-blue-600 */
+        }
+        .calendar-day.available { 
+             background-color: #ffffff; /* bg-white */
+        }
+        .calendar-day.available:hover {
+            background-color: #eff6ff; /* bg-blue-50 */
+            cursor: pointer;
+        }
+        .calendar-day.selected-start,
+        .calendar-day.selected-end {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            font-weight: bold;
+            border: 1px solid #1d4ed8; /* border-blue-700 */
+        }
+        .calendar-day.in-range { /* Actual selected range */
+            background-color: #bfdbfe; /* bg-blue-200 */
+            color: #1e3a8a; /* text-blue-800 */
+        }
+        .calendar-day.hover-in-range { /* Hovered potential range */
+            background-color: #dbeafe; /* bg-blue-100, slightly lighter than in-range */
+        }
+        .calendar-day:empty {
+            background-color: transparent;
+            border: none;
+            pointer-events: none;
+        }
+
+        /* Vanishing Message Styles */
+        #vanishing-message-container {
+            position: fixed;
+            bottom: 20px; 
+            right: 20px;  
+            z-index: 2000; 
+            display: flex;
+            flex-direction: column-reverse; 
+            align-items: flex-end;
+        }
+        .vanishing-message {
+            background-color: #ef4444; 
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            margin-top: 10px;
+            opacity: 0;
+            transform: translateX(110%); 
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            min-width: 250px; 
+            text-align: left;
+        }
+        .vanishing-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .vanishing-message.success {
+            background-color: #22c55e; /* bg-green-500 */
+        }
+        .vanishing-message.info {
+            background-color: #3b82f6; /* bg-blue-500 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-slate-800 hover:text-blue-500 transition-colors">Serene Haven</a>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#about" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">About</a>
+                <a href="#gallery" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">Gallery</a>
+                <a href="#amenities" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">Amenities</a>
+                <a href="#availability" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">Availability</a>
+                <a href="#location" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">Location</a>
+                <a href="#contact" class="nav-link text-slate-600 hover:text-blue-500 transition-colors">Contact</a>
+            </nav>
+            <button id="mobile-menu-button" class="md:hidden text-slate-600 focus:outline-none">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg">
+            <a href="#about" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">About</a>
+            <a href="#gallery" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">Gallery</a>
+            <a href="#amenities" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">Amenities</a>
+            <a href="#availability" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">Availability</a>
+            <a href="#location" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">Location</a>
+            <a href="#contact" class="block py-2 px-6 text-slate-600 hover:bg-blue-50 transition-colors">Contact</a>
+        </div>
+    </header>
+
+    <section id="hero" class="hero-bg h-[70vh] md:h-[85vh] flex items-center justify-center text-white relative">
+        <div class="absolute inset-0 bg-black opacity-40"></div>
+        <div class="text-center z-10 p-6">
+            <h1 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">Discover Your Perfect Escape</h1>
+            <p class="text-lg md:text-2xl mb-8 max-w-2xl mx-auto">Experience unparalleled comfort and modern luxury at Serene Haven.</p>
+            <a href="#availability" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-lg">
+                Check Availability
+            </a>
+        </div>
+    </section>
+
+    <section id="about" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">Welcome to Serene Haven</h2>
+            <div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                <div class="md:w-1/2">
+                    <img src="./living_room/main_living_space.jpg" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/600x400/64748b/e2e8f0?text=living_room%2Fmain_living_space.jpg';"
+                         alt="Bright and Airy Main Living Space" 
+                         class="rounded-lg shadow-xl w-full">
+                </div>
+                <div class="md:w-1/2 text-lg text-slate-600 space-y-4">
+                    <p>Nestled in a quiet and picturesque neighborhood, Serene Haven offers the ideal blend of modern amenities and cozy charm. Perfect for families, couples, or solo travelers seeking a peaceful retreat.</p>
+                    <p>Our meticulously designed home features a ground floor with a fully-equipped kitchen, a comfortable living room, a serene bedroom, and a modern bathroom. The ground floor also boasts a large balcony, perfect for relaxing. Upstairs, discover a unique all-wooden attic room, offering breathtaking views from its own spacious balcony.</p>
+                    <p>We are committed to providing you with an unforgettable stay. Every detail has been thoughtfully considered to ensure your comfort and convenience.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery" class="py-16 md:py-24 bg-slate-100">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">A Glimpse Inside & Out</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                <img src="./kitchen/kitchen_overview.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/94a3b8/e2e8f0?text=kitchen%2Fkitchen_overview.jpg';"
+                     alt="Spacious and Modern Kitchen Overview" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+                <img src="./living_room/living_area_comfortable.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/64748b/e2e8f0?text=living_room%2Fliving_area_comfortable.jpg';"
+                     alt="Comfortable Living Area with Natural Light" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+                <img src="./ground_floor/bedroom_main.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/94a3b8/e2e8f0?text=ground_floor%2Fbedroom_main.jpg';"
+                     alt="Cozy Ground Floor Bedroom" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+                <img src="./attic/wooden_interior_view.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/64748b/e2e8f0?text=attic%2Fwooden_interior_view.jpg';"
+                     alt="Charming Wooden Attic Room Interior" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+                <img src="./attic/balcony_panoramic_view.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/94a3b8/e2e8f0?text=attic%2Fbalcony_panoramic_view.jpg';"
+                     alt="Panoramic View from Attic Balcony" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+                <img src="./outside/village_view.jpg" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/600x450/64748b/e2e8f0?text=outside%2Fvillage_view.jpg';"
+                     alt="Scenic View of the Village" 
+                     class="gallery-image rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer">
+            </div>
+        </div>
+    </section>
+
+    <section id="amenities" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">What We Offer</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-wifi text-3xl text-blue-500 mb-3"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">High-Speed WiFi</h3>
+                    <p class="text-slate-600">Stay connected with complimentary ultra-fast internet access throughout the property.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-tv text-3xl text-blue-500 mb-3"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">Smart TV & Entertainment</h3>
+                    <p class="text-slate-600">Large smart TV with access to Netflix, Hulu, and other streaming services.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-utensils text-3xl text-blue-500 mb-3"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">Fully Equipped Kitchen</h3>
+                    <p class="text-slate-600">Modern kitchen with all appliances and cookware you need to prepare delicious meals.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-parking text-3xl text-blue-500 mb-3"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">Free On-Site Parking</h3>
+                    <p class="text-slate-600">Hassle-free parking available for up to [e.g., 2] vehicles.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-snowflake text-3xl text-blue-500 mb-3"></i> 
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">Air Conditioning & Heating</h3>
+                    <p class="text-slate-600">Ensure your comfort in any season with climate control.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <i class="fas fa-bath text-3xl text-blue-500 mb-3"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">Modern Bathroom</h3>
+                    <p class="text-slate-600">Clean and stylish bathroom with essential toiletries provided.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="availability" class="py-16 md:py-24 bg-slate-100">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">Select Your Dates</h2>
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl text-center">
+                <p class="text-lg text-slate-600 mb-2">Click on an available day to select your start date, then click another available day for your end date.</p>
+                <p class="text-sm text-slate-500 mb-6">Ranges cannot include booked (red) or past (gray) days. Hover to see potential range.</p>
+                
+                <div id="selected-range-display" class="my-4 p-3 bg-blue-50 text-blue-700 rounded-md text-md font-medium min-h-[50px] flex items-center justify-center">
+                    Please select a start date.
+                </div>
+
+                <p id="loading-message" class="text-slate-500 my-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading calendar...</p>
+                <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                    </div>
+                <button id="clear-selection-button" class="mt-6 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors shadow-md hidden">
+                    Clear Selection
+                </button>
+                <a href="#contact" class="mt-8 ml-3 inline-block bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-md">
+                    Request to Book
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="location" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">Our Prime Location</h2>
+            <p class="text-lg text-slate-600 text-center max-w-3xl mx-auto mb-8">
+                Serene Haven is conveniently located in a peaceful yet accessible area. You'll be close to [mention general attractions, e.g., "beautiful beaches", "vibrant downtown", "scenic hiking trails"] while enjoying a tranquil environment.
+                The exact address is provided upon booking confirmation for guest privacy.
+            </p>
+            <div class="aspect-w-16 aspect-h-9 rounded-lg shadow-xl overflow-hidden">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.900779799757!2dYOUR_LONGITUDE!3dYOUR_LATITUDE!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zYOUR_LATITUDE_DEG°N%20YOUR_LONGITUDE_DEG°E!5e0!3m2!1sen!2sus!4vDATE"
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Approximate Location of Serene Haven">
+                </iframe>
+                <div class="flex items-center justify-center bg-slate-200 text-slate-500">
+                    Map loading... If it doesn't appear, please ensure JavaScript is enabled or check your connection.
+                </div>
+            </div>
+             <p class="text-center text-sm text-slate-500 mt-4">Note: The map shows an approximate area for privacy. Exact location details are shared with confirmed guests.</p>
+        </div>
+    </section>
+
+    <section id="contact" class="py-16 md:py-24 bg-slate-100">
+        <div class="container mx-auto px-6">
+            <h2 class="section-heading text-3xl md:text-4xl font-bold text-center text-slate-800 mb-12">Get In Touch</h2>
+            <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div class="text-slate-600">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-3">Contact Details</h3>
+                        <p class="mb-2 flex items-center"><i class="fas fa-user mr-3 text-blue-500"></i> Your Name / Property Manager</p>
+                        <p class="mb-2 flex items-center"><i class="fas fa-phone mr-3 text-blue-500"></i> <a href="tel:+12345678900" class="hover:text-blue-500 transition-colors">+1 (234) 567-8900</a></p>
+                        <p class="mb-2 flex items-center"><i class="fas fa-envelope mr-3 text-blue-500"></i> <a href="mailto:hello@serenehaven.com" class="hover:text-blue-500 transition-colors">hello@serenehaven.com</a></p>
+                        <p class="flex items-start"><i class="fas fa-map-marker-alt mr-3 text-blue-500 mt-1"></i> General Area, City, Country <br><span class="ml-7 text-sm">(Full address upon booking)</span></p>
+                    </div>
+                    <div class="text-slate-600">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-3">Inquiry Hours</h3>
+                        <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
+                        <p>Saturday: 10:00 AM - 5:00 PM</p>
+                        <p>Sunday: Closed (Urgent inquiries will be addressed)</p>
+                    </div>
+                </div>
+
+                <form id="contactForm" class="space-y-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                        <input type="text" name="name" id="name" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                        <input type="email" name="email" id="email" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="you@example.com">
+                    </div>
+                    <div>
+                        <label for="subject" class="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                        <input type="text" name="subject" id="subject" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="Booking Inquiry">
+                    </div>
+                    <div>
+                        <label for="message" class="block text-sm font-medium text-slate-700 mb-1">Message</label>
+                        <textarea name="message" id="message" rows="4" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow resize-none" placeholder="Your message here..."></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-slate-800 text-slate-300 py-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>© <span id="currentYear"></span> Serene Haven. All Rights Reserved.</p>
+            <p class="text-sm mt-1">Designed with <i class="fas fa-heart text-red-500"></i> for Your Perfect Stay.</p>
+        </div>
+    </footer>
+
+    <button id="scrollTopBtn" title="Go to top" class="hidden fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-opacity duration-300 focus:outline-none z-[1000]">
+        <i class="fas fa-arrow-up text-xl"></i>
+    </button>
+
+    <div id="vanishing-message-container">
+        </div>
+
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span id="modalCloseButton" class="modal-close-button">×</span>
+            <p id="modalMessageText" class="text-lg text-slate-700 mt-4 mb-6"></p>
+            <button id="modalOkButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors">OK</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Hero Background Image Loader ---
+            function setHeroBackground() {
+                const heroElement = document.querySelector('.hero-bg');
+                if (!heroElement) return;
+
+                // Extract local path and placeholder from the original placeholder URL structure
+                // Original placeholder was: 'https://placehold.co/1920x1080/334155/e2e8f0?text=outside%2Fhouse_hero_shot.jpg'
+                const localImagePath = './outside/house_hero_shot.jpg'; 
+                const placeholderImagePath = 'https://placehold.co/1920x1080/334155/e2e8f0?text=outside%2Fhouse_hero_shot.jpg';
+
+                const img = new Image();
+                img.onload = function() {
+                    heroElement.style.backgroundImage = `url('${localImagePath}')`;
+                };
+                img.onerror = function() {
+                    // Fallback to placeholder if local image fails
+                    heroElement.style.backgroundImage = `url('${placeholderImagePath}')`;
+                };
+                img.src = localImagePath; // Attempt to load local image
+            }
+            setHeroBackground(); // Call the function to set hero background
+
+            // --- Modal Functionality (for contact form) ---
+            const messageModal = document.getElementById('messageModal'); 
+            const modalMessageText = document.getElementById('modalMessageText');
+            const modalCloseButton = document.getElementById('modalCloseButton');
+            const modalOkButton = document.getElementById('modalOkButton');
+
+            function showContactModal(message) { 
+                if (messageModal && modalMessageText) {
+                    modalMessageText.innerHTML = message; 
+                    messageModal.style.display = 'flex';
+                }
+            }
+
+            function closeContactModal() { 
+                if (messageModal) {
+                    messageModal.style.display = 'none';
+                }
+            }
+
+            if (modalCloseButton) modalCloseButton.onclick = closeContactModal;
+            if (modalOkButton) modalOkButton.onclick = closeContactModal;
+            window.addEventListener('click', function(event) { 
+                if (event.target == messageModal) {
+                    closeContactModal();
+                }
+            });
+            
+            // --- Vanishing Message Functionality ---
+            function showVanishingMessage(message, type = 'error', duration = 3500) {
+                const container = document.getElementById('vanishing-message-container');
+                if (!container) {
+                    console.error('Vanishing message container not found!');
+                    return;
+                }
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `vanishing-message ${type}`;
+                messageDiv.textContent = message;
+                container.appendChild(messageDiv);
+                void messageDiv.offsetWidth;
+                messageDiv.classList.add('show');
+                setTimeout(() => {
+                    messageDiv.classList.remove('show');
+                    messageDiv.addEventListener('transitionend', () => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, { once: true });
+                }, duration);
+            }
+
+            // --- Mobile Menu Toggle ---
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+                mobileMenu.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        mobileMenu.classList.add('hidden');
+                    });
+                });
+            }
+
+            // --- Smooth Scrolling & Active Nav Link Highlighting ---
+            const navLinks = document.querySelectorAll('nav a[href^="#"], #mobile-menu a[href^="#"]');
+            const sections = document.querySelectorAll('section[id]');
+            function changeNavActiveState() {
+                let currentSectionId = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        currentSectionId = section.getAttribute('id');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').substring(1) === currentSectionId) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            window.addEventListener('scroll', changeNavActiveState);
+            changeNavActiveState();
+
+            // --- Availability Calendar ---
+            const calendarContainer = document.getElementById('calendar-container');
+            const loadingMessage = document.getElementById('loading-message');
+            const selectedRangeDisplay = document.getElementById('selected-range-display');
+            const clearSelectionButton = document.getElementById('clear-selection-button');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let selectedStartDate = null;
+            let selectedEndDate = null;
+            let potentialHoverEndDate = null; 
+            let bookedDatesSet = new Set();
+
+            async function fetchBookedDates() {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const exampleBookedDates = [
+                            "2025-05-25", "2025-05-26",
+                            "2025-06-01", "2025-06-02", "2025-06-10", "2025-06-15", "2025-06-16", "2025-06-17",
+                            "2025-07-05", "2025-07-06", "2025-07-07", "2025-07-20", "2025-07-21",
+                            "2025-08-10", "2025-08-11", "2025-08-12", "2025-08-13", "2025-08-14",
+                            "2025-09-01", "2025-09-02", "2025-09-15", "2025-09-16", "2025-09-30"
+                        ];
+                        resolve(new Set(exampleBookedDates));
+                    }, 1000);
+                });
+            }
+            
+            function formatDate(date) {
+                if (!date) return '';
+                const d = new Date(date); 
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            function updateSelectedRangeDisplay() {
+                if (!selectedRangeDisplay) return;
+                if (selectedStartDate && selectedEndDate) {
+                    selectedRangeDisplay.innerHTML = `Selected: <span class="font-semibold">${formatDate(selectedStartDate)}</span> to <span class="font-semibold">${formatDate(selectedEndDate)}</span>`;
+                    clearSelectionButton.classList.remove('hidden');
+                } else if (selectedStartDate) {
+                    selectedRangeDisplay.innerHTML = `Selected start: <span class="font-semibold">${formatDate(selectedStartDate)}</span>. Please select an end date.`;
+                    clearSelectionButton.classList.remove('hidden');
+                } else {
+                    selectedRangeDisplay.textContent = 'Please select a start date.';
+                    clearSelectionButton.classList.add('hidden');
+                }
+            }
+            
+            function isRangeValid(start, end) {
+                if (!start || !end) return true; 
+                let current = new Date(start);
+                current.setDate(current.getDate() + 1); 
+                while (current < end) {
+                    if (bookedDatesSet.has(formatDate(current)) || current < today) {
+                        return false; 
+                    }
+                    current.setDate(current.getDate() + 1);
+                }
+                return true;
+            }
+
+            function handleDayClick(event) {
+                const clickedCell = event.target.closest('.calendar-day');
+                if (!clickedCell || !clickedCell.dataset.date || clickedCell.classList.contains('past') || clickedCell.classList.contains('booked')) {
+                    return;
+                }
+                const clickedDate = new Date(clickedCell.dataset.date + "T00:00:00");
+
+                if (!selectedStartDate || (selectedStartDate && selectedEndDate)) { 
+                    selectedStartDate = clickedDate;
+                    selectedEndDate = null;
+                    potentialHoverEndDate = null; 
+                } else { 
+                    if (clickedDate.getTime() === selectedStartDate.getTime()) { 
+                        selectedStartDate = null; 
+                        selectedEndDate = null;
+                    } else if (clickedDate < selectedStartDate) { 
+                        selectedEndDate = selectedStartDate;
+                        selectedStartDate = clickedDate;
+                    } else { 
+                        selectedEndDate = clickedDate;
+                    }
+
+                    if (selectedStartDate && selectedEndDate && !isRangeValid(selectedStartDate, selectedEndDate)) {
+                        showVanishingMessage("Invalid range: includes unavailable days.", "error");
+                        if (!bookedDatesSet.has(formatDate(clickedDate)) && clickedDate >= today) {
+                             selectedStartDate = clickedDate;
+                        } else {
+                             selectedStartDate = null;
+                        }
+                        selectedEndDate = null;
+                    }
+                }
+                updateAllCalendarViews();
+                updateSelectedRangeDisplay();
+            }
+            
+            function handleDayHover(event) {
+                const hoveredCell = event.target.closest('.calendar-day');
+                if (!selectedStartDate || selectedEndDate || !hoveredCell || !hoveredCell.dataset.date || hoveredCell.classList.contains('past') || hoveredCell.classList.contains('booked')) {
+                    potentialHoverEndDate = null; 
+                    updateAllCalendarViews(); 
+                    return;
+                }
+                const hoveredDate = new Date(hoveredCell.dataset.date + "T00:00:00");
+                if (hoveredDate < selectedStartDate) {
+                    potentialHoverEndDate = null; 
+                } else {
+                    potentialHoverEndDate = hoveredDate;
+                }
+                updateAllCalendarViews(); 
+            }
+
+            function handleCalendarMouseLeave() {
+                if (selectedStartDate && !selectedEndDate && potentialHoverEndDate) {
+                    potentialHoverEndDate = null;
+                    updateAllCalendarViews(); 
+                }
+            }
+
+            function createMonthCalendar(year, month) {
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; 
+                const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"]; 
+
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'month-container bg-white p-3 sm:p-4 rounded-lg shadow-md';
+                monthDiv.addEventListener('mouseleave', handleCalendarMouseLeave);
+
+                const title = document.createElement('h3');
+                title.textContent = `${monthNames[month]} ${year}`;
+                title.className = 'text-lg sm:text-xl font-semibold text-center mb-3 text-slate-700';
+                monthDiv.appendChild(title);
+
+                const calendarGrid = document.createElement('div');
+                calendarGrid.className = 'grid grid-cols-7 gap-px sm:gap-1 text-xs sm:text-sm'; 
+
+                daysOfWeek.forEach(day => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.textContent = day;
+                    dayHeader.className = 'font-medium text-slate-500 text-center pb-1';
+                    calendarGrid.appendChild(dayHeader);
+                });
+
+                const firstDayOfMonth = new Date(year, month, 1);
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startingDayOfWeek = firstDayOfMonth.getDay();
+
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'calendar-day';
+                    calendarGrid.appendChild(emptyCell);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.textContent = day;
+                    const currentDateObj = new Date(year, month, day);
+                    currentDateObj.setHours(0,0,0,0);
+                    const dateString = formatDate(currentDateObj);
+                    dayCell.dataset.date = dateString;
+                    
+                    dayCell.className = 'calendar-day p-1 sm:p-2 border border-slate-100 rounded flex items-center justify-center h-8 sm:h-10 min-w-[28px] sm:min-w-[36px] transition-colors duration-150';
+                    
+                    if (currentDateObj < today) {
+                        dayCell.classList.add('past');
+                    } else if (bookedDatesSet.has(dateString)) {
+                        dayCell.classList.add('booked');
+                    } else {
+                        dayCell.classList.add('available');
+                        dayCell.addEventListener('click', handleDayClick);
+                        dayCell.addEventListener('mouseover', handleDayHover);
+                    }
+                    if (currentDateObj.getTime() === today.getTime()) {
+                        dayCell.classList.add('today');
+                    }
+                    calendarGrid.appendChild(dayCell);
+                }
+                monthDiv.appendChild(calendarGrid);
+                return monthDiv;
+            }
+            
+            function updateAllCalendarViews() {
+                const allDayCells = document.querySelectorAll('.calendar-day[data-date]');
+                let tempStartDate = selectedStartDate;
+                let tempEndDate = selectedEndDate || potentialHoverEndDate; 
+
+                if (tempStartDate && tempEndDate && tempEndDate < tempStartDate) {
+                    [tempStartDate, tempEndDate] = [tempEndDate, tempStartDate];
+                }
+
+                allDayCells.forEach(cell => {
+                    cell.classList.remove('selected-start', 'selected-end', 'in-range', 'hover-in-range');
+                    const cellDateStr = cell.dataset.date;
+                    const cellDate = new Date(cellDateStr + "T00:00:00");
+
+                    if (tempStartDate && cellDate.getTime() === tempStartDate.getTime()) {
+                        cell.classList.add('selected-start');
+                    }
+                    if (tempEndDate && cellDate.getTime() === tempEndDate.getTime()) {
+                        if (selectedStartDate && !selectedEndDate && potentialHoverEndDate && cellDate.getTime() === potentialHoverEndDate.getTime()) {
+                             cell.classList.add('selected-end'); 
+                        } else if (selectedEndDate && cellDate.getTime() === selectedEndDate.getTime()){ 
+                             cell.classList.add('selected-end');
+                        }
+                    }
+                    
+                    if (tempStartDate && tempEndDate && cellDate > tempStartDate && cellDate < tempEndDate) {
+                        if (isRangeValid(tempStartDate, tempEndDate)) {
+                            if (selectedEndDate) { 
+                                cell.classList.add('in-range');
+                            } else if (potentialHoverEndDate) { 
+                                cell.classList.add('hover-in-range');
+                            }
+                        }
+                    }
+                });
+            }
+
+            async function displayCalendars() {
+                if (!calendarContainer || !loadingMessage) return;
+                loadingMessage.style.display = 'block';
+                calendarContainer.innerHTML = ''; 
+
+                bookedDatesSet = await fetchBookedDates();
+
+                loadingMessage.style.display = 'none';
+
+                let currentMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                for (let i = 0; i < 5; i++) { 
+                    const year = currentMonthDate.getFullYear();
+                    const month = currentMonthDate.getMonth();
+                    const monthCalendar = createMonthCalendar(year, month);
+                    calendarContainer.appendChild(monthCalendar);
+                    currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+                }
+                updateAllCalendarViews(); 
+                updateSelectedRangeDisplay();
+            }
+            
+            if (clearSelectionButton) {
+                clearSelectionButton.addEventListener('click', () => {
+                    selectedStartDate = null;
+                    selectedEndDate = null;
+                    potentialHoverEndDate = null;
+                    updateAllCalendarViews();
+                    updateSelectedRangeDisplay();
+                });
+            }
+
+            displayCalendars();
+
+            // --- Contact Form Submission ---
+            const contactForm = document.getElementById('contactForm');
+            if (contactForm) {
+                contactForm.addEventListener('submit', function(e) {
+                    e.preventDefault(); 
+                    const name = this.name.value;
+                    let message = `Thank you for your message, ${name}! We will get back to you shortly.`;
+                    if (selectedStartDate && selectedEndDate) {
+                        message += `<br><br>Your selected dates: <b>${formatDate(selectedStartDate)}</b> to <b>${formatDate(selectedEndDate)}</b>.`;
+                    } else if (selectedStartDate) {
+                        message += `<br><br>You inquired about starting on <b>${formatDate(selectedStartDate)}</b>.`;
+                    }
+                    message += "<br>(This is a demo - no email was actually sent)."
+                    showContactModal(message); 
+                    this.reset(); 
+                    selectedStartDate = null; 
+                    selectedEndDate = null;
+                    potentialHoverEndDate = null;
+                    updateAllCalendarViews();
+                    updateSelectedRangeDisplay();
+                });
+            }
+
+            // --- Update Footer Year ---
+            const currentYearSpan = document.getElementById('currentYear');
+            if (currentYearSpan) {
+                currentYearSpan.textContent = new Date().getFullYear();
+            }
+
+            // --- Scroll to Top Button ---
+            const scrollTopBtn = document.getElementById("scrollTopBtn");
+            if (scrollTopBtn) {
+                window.onscroll = function() {
+                    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                        scrollTopBtn.classList.remove('hidden');
+                        scrollTopBtn.classList.add('opacity-100');
+                    } else {
+                        scrollTopBtn.classList.add('opacity-0');
+                        setTimeout(() => {
+                             if (!(document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)) {
+                                scrollTopBtn.classList.add('hidden');
+                                scrollTopBtn.classList.remove('opacity-100', 'opacity-0'); 
+                             }
+                        }, 300);
+                    }
+                };
+                scrollTopBtn.addEventListener('click', () => {
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
